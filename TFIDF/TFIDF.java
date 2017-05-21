@@ -36,7 +36,7 @@ public class TFIDF extends Configured implements Tool {
       
       System.exit(res);
    }
-   static List<Pair<String, Double>> words = new ArrayList<Pair<String, Double>>();
+   static List<Pair<String, Double>> words = new ArrayList<Pair<String, Double>>(); //list for ordering
 
    @Override
    public int run(String[] args) throws Exception {
@@ -46,6 +46,8 @@ public class TFIDF extends Configured implements Tool {
       Job job3 = new Job(getConf(),"TFIDF");
       Job job4 = new Job(getConf(),"TFIDF");
       
+	   
+	   //job1 is a wordcount per doc
       job1.setJarByClass(TFIDF.class);
       job1.setOutputKeyClass(Text.class);
       job1.setOutputValueClass(IntWritable.class);
@@ -62,6 +64,7 @@ public class TFIDF extends Configured implements Tool {
 			fs.delete(new Path(args[1]), true);
 		}
       
+	   //word in doc and wordcount
       if (job1.waitForCompletion(true)){
       job2.setJarByClass(TFIDF.class);
       job2.setOutputKeyClass(Text.class);
@@ -79,6 +82,7 @@ public class TFIDF extends Configured implements Tool {
 			}
       	}
       
+	   //compute the TFIDF
       if (job2.waitForCompletion(true)){
           job3.setJarByClass(TFIDF.class);
           job3.setOutputKeyClass(Text.class);
@@ -97,6 +101,8 @@ public class TFIDF extends Configured implements Tool {
           job3.waitForCompletion(true);
           	}
       
+	   
+	   //order the results
       if (job3.waitForCompletion(true)){
           job4.setJarByClass(TFIDF.class);
           job4.setOutputKeyClass(Text.class);
@@ -130,7 +136,8 @@ public class TFIDF extends Configured implements Tool {
     	  String filenameStr = ((FileSplit) context.getInputSplit())
 					.getPath().getName();
 			filename = new Text(filenameStr);
-			
+	
+	      //put everything in lower case and separate words from punctuations
     	  StringTokenizer tokenizer = new StringTokenizer(value.toString(), " \t\n\r\f,.:;?![]'#--()_\"*/$%&<>+=@"); 
     	  while (tokenizer.hasMoreTokens()) { 
     		  String stri = tokenizer.nextToken().toLowerCase();
@@ -149,10 +156,11 @@ public class TFIDF extends Configured implements Tool {
 		@Override
 		public void reduce(Text key, Iterable<IntWritable> values, Context context)
 				throws IOException, InterruptedException {
-
+		
 			 int sum = 0;
 	         for (IntWritable val : values) {
-
+			
+			 //for each word, compute its number of occurences in the doc
 	        	 sum += val.get();
 	        	 }
 			context.write(key, sum);
@@ -168,10 +176,12 @@ public static class Map2 extends Mapper<Text, Text, Text, Text> {
     public void map(Text key, Text value, Context context)
             throws IOException, InterruptedException {
   	  
+	    //split doc and word
     	String[] parts = key.toString().split(",");
     		String key1 = parts[0];
     		String key2 = parts[1];
 		  
+	    //output (doc,[word,countperdoc])
 		  StringBuilder StringBuilder = new StringBuilder();
 		  StringBuilder.append(key1+","+value);
 		  context.write(new Text(key2),new Text(StringBuilder.toString()));
@@ -186,14 +196,18 @@ public static class Map2 extends Mapper<Text, Text, Text, Text> {
 			
 	    	int sum = 0;
 	    	List<Text> cache = new ArrayList<Text>();
-
+		
+		//sum the occurences of each words in the doc to have a Wordcount
 	    	for (Text value : values) {
 				String[] parts = value.toString().split(",");
 	    		String key2 = parts[1];
 	    		sum += Integer.parseInt(key2);
+			
+			//to iterate over it again
 	    		cache.add(new Text(value));
 	    	}
-	    		
+	    	
+		//output ([word,doc],[countperdoc,wordcount])
 	    	for (Text value1 : cache) {
 				String[] parts2 = value1.toString().split(",");
 				String key1 = parts2[0];
