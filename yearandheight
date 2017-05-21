@@ -1,0 +1,35 @@
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+
+public class yearandheight {
+	public static void main(String[] args) throws FileNotFoundException, IOException {
+		String csvFile = "/home/cloudera/workspace/arbres.csv";
+        String line = "";
+        String cvsSplitBy = ";";
+
+        try (BufferedReader br = new BufferedReader(new FileReader(csvFile))) {
+        	
+        	// initiate the tree count
+        	 int k = 1;
+        	 
+        	 
+            while ((line = br.readLine()) != null) {
+            	
+               // skip first line
+               if ( k > 22)
+            	  {String[] arbre = line.split(cvsSplitBy);
+                
+               	// output the tree, its number(line), the year and height
+                System.out.println("Arbre "+k + " : year = " + arbre[6] + " , height = " + arbre[7]);
+                
+                //increment
+                k = k+1;
+              
+                }
+               else k = k+1;
+            }
+        }
+	}
+}
